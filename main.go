@@ -52,6 +52,7 @@ func main() {
 		container     string
 		pid           uint
 		proxyExitCode bool
+		proxyWinsize  bool
 		showVersion   bool
 	)
 
@@ -62,6 +63,7 @@ func main() {
 	flag.StringVar(&container, "container", "", "container id for the shim")
 	flag.UintVar(&pid, "pid", 0, "process id for the shim")
 	flag.BoolVar(&proxyExitCode, "proxy-exit-code", true, "proxy exit code of the process")
+	flag.BoolVar(&proxyWinsize, "proxy-winsize", false, "proxy winsize of the tty")
 
 	flag.Parse()
 
@@ -93,13 +95,15 @@ func main() {
 	defer wg.Wait()
 
 	// winsize
-	s, err := term.SetRawTerminal(os.Stdin.Fd())
-	if err != nil {
-		shimLog.WithError(err).Error("failed to set raw terminal")
-		os.Exit(exitFailure)
+	if proxyWinsize {
+		s, err := term.SetRawTerminal(os.Stdin.Fd())
+		if err != nil {
+			shimLog.WithError(err).Error("failed to set raw terminal")
+			os.Exit(exitFailure)
+		}
+		defer term.RestoreTerminal(os.Stdin.Fd(), s)
+		shim.monitorTtySize(os.Stdin)
 	}
-	defer term.RestoreTerminal(os.Stdin.Fd(), s)
-	shim.monitorTtySize(os.Stdin)
 
 	// signals
 	sigc := shim.forwardAllSignals()
