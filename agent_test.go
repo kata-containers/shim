@@ -106,9 +106,9 @@ func newTestSpec() *pb.Spec {
 	}
 }
 
-func (t *testAgent) addContainer(containerId string) (uint32, error) {
+func (t *testAgent) addContainer(containerID string) (uint32, error) {
 	_, err := t.client.CreateContainer(t.ctx, &pb.CreateContainerRequest{
-		ContainerId: containerId,
+		ContainerId: containerID,
 		StringUser:  &pb.StringUser{Uid: "root", Gid: "root"},
 		OCI:         newTestSpec(),
 	})
@@ -116,7 +116,7 @@ func (t *testAgent) addContainer(containerId string) (uint32, error) {
 		return 0, fmt.Errorf("failed to create new container: %s", err)
 	}
 
-	resp, err := t.client.StartContainer(t.ctx, &pb.StartContainerRequest{ContainerId: containerId})
+	resp, err := t.client.StartContainer(t.ctx, &pb.StartContainerRequest{ContainerId: containerID})
 	if err != nil {
 		return 0, fmt.Errorf("failed to create new container: %s", err)
 	}

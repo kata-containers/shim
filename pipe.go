@@ -18,13 +18,13 @@ import (
 type inPipe struct {
 	ctx         context.Context
 	agent       *shimAgent
-	containerId string
+	containerID string
 	pid         uint32
 }
 
 func (p *inPipe) Write(data []byte) (n int, err error) {
 	resp, err := p.agent.WriteStdin(p.ctx, &pb.WriteStreamRequest{
-		ContainerId: p.containerId,
+		ContainerId: p.containerID,
 		PID:         p.pid,
 		Data:        data})
 	if err != nil {
@@ -36,7 +36,7 @@ func (p *inPipe) Write(data []byte) (n int, err error) {
 
 func (p *inPipe) Close() error {
 	_, err := p.agent.CloseStdin(p.ctx, &pb.CloseStdinRequest{
-		ContainerId: p.containerId,
+		ContainerId: p.containerID,
 		PID:         p.pid})
 
 	return err
@@ -44,9 +44,9 @@ func (p *inPipe) Close() error {
 
 type readFn func(context.Context, *pb.ReadStreamRequest, ...grpc.CallOption) (*pb.ReadStreamResponse, error)
 
-func pipeRead(ctx context.Context, containerId string, pid uint32, data []byte, read readFn) (n int, err error) {
+func pipeRead(ctx context.Context, containerID string, pid uint32, data []byte, read readFn) (n int, err error) {
 	resp, err := read(ctx, &pb.ReadStreamRequest{
-		ContainerId: containerId,
+		ContainerId: containerID,
 		PID:         pid,
 		Len:         uint32(len(data))})
 	if err == nil {
@@ -64,26 +64,26 @@ func pipeRead(ctx context.Context, containerId string, pid uint32, data []byte, 
 type outPipe struct {
 	ctx         context.Context
 	agent       *shimAgent
-	containerId string
+	containerID string
 	pid         uint32
 }
 
 func (p *outPipe) Read(data []byte) (n int, err error) {
-	return pipeRead(p.ctx, p.containerId, p.pid, data, p.agent.ReadStdout)
+	return pipeRead(p.ctx, p.containerID, p.pid, data, p.agent.ReadStdout)
 }
 
 type errPipe struct {
 	ctx         context.Context
 	agent       *shimAgent
-	containerId string
+	containerID string
 	pid         uint32
 }
 
 func (p *errPipe) Read(data []byte) (n int, err error) {
-	return pipeRead(p.ctx, p.containerId, p.pid, data, p.agent.ReadStderr)
+	return pipeRead(p.ctx, p.containerID, p.pid, data, p.agent.ReadStderr)
 }
 
-func shimStdioPipe(ctx context.Context, agent *shimAgent, containerId string, pid uint32) (io.WriteCloser, io.Reader, io.Reader) {
-	return &inPipe{ctx: ctx, agent: agent, containerId: containerId, pid: pid},
-		&outPipe{ctx: ctx, agent: agent, containerId: containerId, pid: pid}, &errPipe{ctx: ctx, agent: agent, containerId: containerId, pid: pid}
+func shimStdioPipe(ctx context.Context, agent *shimAgent, containerID string, pid uint32) (io.WriteCloser, io.Reader, io.Reader) {
+	return &inPipe{ctx: ctx, agent: agent, containerID: containerID, pid: pid},
+		&outPipe{ctx: ctx, agent: agent, containerID: containerID, pid: pid}, &errPipe{ctx: ctx, agent: agent, containerID: containerID, pid: pid}
 }
