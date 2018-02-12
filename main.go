@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kata-containers/shim/nsenter"
+
 	"github.com/sirupsen/logrus"
 	lSyslog "github.com/sirupsen/logrus/hooks/syslog"
 )
@@ -64,6 +66,7 @@ func main() {
 		terminal      bool
 		proxyExitCode bool
 		showVersion   bool
+		netnsPid      int
 	)
 
 	flag.BoolVar(&showVersion, "version", false, "display program version and exit")
@@ -74,6 +77,7 @@ func main() {
 	flag.StringVar(&execID, "exec-id", "", "process id for the shim")
 	flag.BoolVar(&terminal, "terminal", false, "specify if a terminal is setup")
 	flag.BoolVar(&proxyExitCode, "proxy-exit-code", true, "proxy exit code of the process")
+	flag.IntVar(&netnsPid, "netns-pid", -1, "share network namespace with the specified pid")
 
 	flag.Parse()
 
@@ -85,6 +89,13 @@ func main() {
 	if agentAddr == "" || container == "" || execID == "" {
 		logger().WithField("agentAddr", agentAddr).WithField("container", container).WithField("exec-id", execID).Error("container ID, exec ID and agent socket endpoint must be set")
 		os.Exit(exitFailure)
+	}
+
+	if netnsPid >= 0 {
+		if !nsenter.NsEnter(netnsPid) {
+			logger().WithField("netnsPid", netnsPid).Error("Failed to enter network namespace")
+			os.Exit(exitFailure)
+		}
 	}
 
 	err := initLogger(logLevel)
