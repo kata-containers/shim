@@ -12,6 +12,7 @@ import (
 	"log/syslog"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -58,6 +59,11 @@ func initLogger(logLevel string) error {
 	logger().WithField("version", version).Info()
 
 	return nil
+}
+
+func init() {
+	// Force coredump + full stacktrace on internal error
+	debug.SetTraceback("crash")
 }
 
 func main() {
