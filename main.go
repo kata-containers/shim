@@ -12,7 +12,6 @@ import (
 	"log/syslog"
 	"os"
 	"os/signal"
-	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -142,9 +141,7 @@ func realMain() {
 	// and wait for the process. Indeed, after the process has been
 	// waited for, we cannot expect to do any more calls related to
 	// this process since it is going to be removed from the agent.
-	wg := &sync.WaitGroup{}
-	shim.proxyStdio(wg, terminal)
-	wg.Wait()
+	shim.proxyStdio(terminal)
 
 	// wait until exit
 	exitcode, err := shim.wait()
