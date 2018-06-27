@@ -48,7 +48,9 @@ func newShim(addr, containerID, execID string) (*shim, error) {
 		agent:  agent}, nil
 }
 
-func (s *shim) proxyStdio(wg *sync.WaitGroup, terminal bool) {
+func (s *shim) proxyStdio(terminal bool) {
+	var wg sync.WaitGroup
+
 	// don't wait the copying of the stdin, because `io.Copy(inPipe, os.Stdin)`
 	// can't terminate when no input. todo: find a better way.
 	wg.Add(1)
@@ -60,15 +62,18 @@ func (s *shim) proxyStdio(wg *sync.WaitGroup, terminal bool) {
 
 	inPipe, outPipe, errPipe := shimStdioPipe(s.ctx, s.agent, s.containerID, s.execID)
 	go func() {
-		_, err1 := io.Copy(inPipe, os.Stdin)
-		_, err2 := s.agent.CloseStdin(s.ctx, &pb.CloseStdinRequest{
-			ContainerId: s.containerID,
-			ExecId:      s.execID})
-		if err1 != nil {
-			logger().WithError(err1).Warn("copy stdin failed")
+		_, err := io.Copy(inPipe, os.Stdin)
+		if err != nil {
+			logger().WithError(err).Warn("copy stdin failed")
 		}
-		if err2 != nil {
-			logger().WithError(err2).Warn("close stdin failed")
+
+		if !terminal {
+			_, err = s.agent.CloseStdin(s.ctx, &pb.CloseStdinRequest{
+				ContainerId: s.containerID,
+				ExecId:      s.execID})
+			if err != nil {
+				logger().WithError(err).Warn("close stdin failed")
+			}
 		}
 	}()
 
@@ -91,6 +96,8 @@ func (s *shim) proxyStdio(wg *sync.WaitGroup, terminal bool) {
 			wg.Done()
 		}()
 	}
+
+	wg.Wait()
 }
 
 func (s *shim) forwardAllSignals() chan os.Signal {
