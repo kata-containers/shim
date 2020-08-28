@@ -6,8 +6,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"io"
+	"runtime/pprof"
+	"strings"
 
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go/config"
@@ -71,17 +74,26 @@ func createTracer(name string) (opentracing.Tracer, error) {
 
 // stopTracing() ends all tracing, reporting the spans to the collector.
 func stopTracing(ctx context.Context) {
+	shimLog.Infof("FIXME: stopTracing: tracing: %+v", tracing)
+
 	if !tracing {
 		return
 	}
 
+	shimLog.Infof("FIXME: stopTracing: calling opentracing.SpanFromContext")
 	span := opentracing.SpanFromContext(ctx)
+	shimLog.Infof("FIXME: stopTracing: opentracing.SpanFromContext returned span %+v", span)
 	if span != nil {
+		shimLog.Infof("FIXME: stopTracing: finishing span")
 		span.Finish()
 	}
 
+	shimLog.Infof("FIXME: stopTracing: closing tracer")
+
 	// report all possible spans to the collector
 	tracerCloser.Close()
+
+	shimLog.Infof("FIXME: stopTracing: DONE")
 }
 
 // trace creates a new tracing span based on the specified name and parent
@@ -95,10 +107,26 @@ func trace(parent context.Context, name string) (opentracing.Span, context.Conte
 	// are still created - but the tracer used is a NOP. Therefore, only
 	// display the message when tracing is really enabled.
 	if tracing {
+		bt := getBacktrace()
 		// This log message is *essential*: it is used by:
 		// https: //github.com/kata-containers/tests/blob/master/tracing/tracing-test.sh
-		shimLog.Debugf("created span %v", span)
+		shimLog.Debugf("created span %v (name: %q, backtrace: %v)", span, name, bt)
 	}
 
 	return span, ctx
+}
+
+func getBacktrace() string {
+	profiles := pprof.Profiles()
+
+	buf := &bytes.Buffer{}
+
+	for _, p := range profiles {
+		// The magic number requests a full stacktrace. See
+		// https://golang.org/pkg/runtime/pprof/#Profile.WriteTo.
+		pprof.Lookup(p.Name()).WriteTo(buf, 2)
+	}
+
+	//return buf.String()
+	return strings.Join(strings.Split(buf.String(), "\n"), ",")
 }
