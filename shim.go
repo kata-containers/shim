@@ -180,7 +180,8 @@ func (s *shim) wait() (int32, error) {
 	span, _ := trace(s.ctx, "wait")
 	defer span.Finish()
 
-	resp, err := s.agent.WaitProcess(s.ctx, &pb.WaitProcessRequest{
+	ctx, _ := context.WithTimeout(s.ctx, grpcTimeout)
+	resp, err := s.agent.WaitProcess(ctx, &pb.WaitProcessRequest{
 		ContainerId: s.containerID,
 		ExecId:      s.execID})
 	if err != nil {

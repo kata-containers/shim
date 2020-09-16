@@ -58,6 +58,8 @@ const (
 
 	// delay before trying to connect again
 	hybridVSockConnectDelay = time.Millisecond * 300
+
+	grpcTimeout = time.Second * 10
 )
 
 // version is the shim version. This variable is populated at build time.
