@@ -4,7 +4,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-set -e
+set -ex
 
 cidir=$(dirname "$0")
 source "${cidir}/lib.sh"
