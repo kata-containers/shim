@@ -5,7 +5,7 @@ jobs:
     strategy:
       matrix:
         go-version: [1.13.x, 1.14.x, 1.15.x]
-        os: [ubuntu-18.04]
+        os: [ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     env:
       GO111MODULE: off
@@ -27,10 +27,15 @@ jobs:
         echo "TRAVIS_PULL_REQUEST_BRANCH: ${TRAVIS_PULL_REQUEST_BRANCH}"
         echo "TRAVIS_PULL_REQUEST_SHA: ${TRAVIS_PULL_REQUEST_SHA}"
         echo "TRAVIS: ${TRAVIS}"
+    - name: Set env
+      run: |
+        echo "GOPATH=${{ github.workspace }}" >> $GITHUB_ENV
+        echo "${{ github.workspace }}/bin" >> $GITHUB_PATH
     - name: Checkout code
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
+        path: ./src/github.com/${{ github.repository }}
     - name: Setup travis references
       run: |
         echo "TRAVIS_BRANCH=${TRAVIS_BRANCH:-$(echo $GITHUB_REF | awk 'BEGIN { FS = \"/\" } ; { print $3 }')}" 
@@ -40,16 +45,10 @@ jobs:
         sudo apt-get install -y -qq automake moreutils
     - name: Building
       run: |
-        shim_repo=$(go env GOPATH)/src/github.com/kata-containers/shim
-        pushd ${shim_repo}
-        GOPATH=$(go env GOPATH) make
+        cd ${GOPATH}/src/github.com/kata-containers/shim && make
     - name: Running tests
       run: |
-        shim_repo=$(go env GOPATH)/src/github.com/kata-containers/shim
-        pushd ${shim_repo}
-        GOPATH=$(go env GOPATH) make test 
+        cd ${GOPATH}/src/github.com/kata-containers/shim && make test
     - name: Running static checks
       run: |
-        shim_repo=$(go env GOPATH)/src/github.com/kata-containers/shim
-        pushd ${shim_repo}
-        GOPATH=$(go env GOPATH) .ci/static-checks.sh
+        cd ${GOPATH}/src/github.com/kata-containers/shim && .ci/static-checks.sh
